@@ -5,13 +5,10 @@ import { css, jsx } from '@emotion/core'
 import './board.css'
 
 export default class Board extends React.Component {
-  gridSize
-  dataGrid
-  tileStyles
-  layoutItems
-
   constructor(props) {
     super(props)
+
+    this.gameStarted = false
     this.gridSize = 4
     this.dataGrid = []
     this.tileStyles = ``
@@ -35,36 +32,79 @@ export default class Board extends React.Component {
     }
   }
 
-  putNewNumber() {
-    const freeCells = []
-    this.dataGrid.forEach((xItem, x) => {
-      xItem.forEach((yItem, y) => {
-        if (yItem === null) {
-          freeCells.push({
-            position: { x, y },
-            number: Math.round(Math.random()) === 0 ? 2 : 4
-          })
-        }
-      })
-    })
-    if (freeCells.length === 0) {
-      alert('full!')
-    } else {
-      const randomIndex = Math.floor(Math.random() * (freeCells.length - 1))
-      const randomCell = freeCells[randomIndex]
-
-      this.dataGrid[randomCell.position.x][randomCell.position.y] = randomCell
-      const dataTiles = this.state.dataTiles
-      dataTiles.push(
-        <div
-          key={`${randomCell.position.x}${randomCell.position.y}`}
-          className="tile-item"
-          data-position={`${randomCell.position.x}-${randomCell.position.y}`}
-          data-value={randomCell.number}
-        ></div>
-      )
-      this.setState({ dataTiles })
+  putNewNumber(count = 1) {
+    if (count === 1) {
+      this.gameStarted = true
     }
+    for (let index = 0; index < count; index++) {
+      const freeCells = []
+      this.dataGrid.forEach((xItem, x) => {
+        xItem.forEach((yItem, y) => {
+          if (yItem === null) {
+            freeCells.push({
+              position: { x, y },
+              number: Math.round(Math.random()) === 0 ? 2 : 4
+            })
+          }
+        })
+      })
+      if (freeCells.length === 0) {
+        alert('full!')
+      } else {
+        const randomIndex = Math.floor(Math.random() * (freeCells.length - 1))
+        const randomCell = freeCells[randomIndex]
+
+        this.dataGrid[randomCell.position.x][randomCell.position.y] = randomCell
+        const dataTiles = this.state.dataTiles
+        dataTiles.push(
+          <div
+            key={`${randomCell.position.x}${randomCell.position.y}`}
+            className="tile-item"
+            data-position={`${randomCell.position.x}-${randomCell.position.y}`}
+            data-value={randomCell.number}
+          ></div>
+        )
+        this.setState({ dataTiles })
+        this.saveGame()
+      }
+    }
+  }
+
+  retrieveData() {
+    let savedData = window.localStorage.getItem('gameState')
+    if (savedData) {
+      savedData = JSON.parse(savedData)
+      const dataTiles = []
+      this.dataGrid = savedData.dataGrid
+      this.dataGrid.forEach(xItem => {
+        xItem.forEach(yItem => {
+          if (yItem !== null) {
+            dataTiles.push(
+              <div
+                key={`${yItem.position.x}${yItem.position.y}`}
+                className="tile-item"
+                data-position={`${yItem.position.x}-${yItem.position.y}`}
+                data-value={yItem.number}
+              ></div>
+            )
+          }
+        })
+      })
+      this.setState({ dataTiles })
+    } else {
+      setTimeout(() => {
+        this.putNewNumber(2)
+      }, 500)
+    }
+  }
+
+  saveGame() {
+    // TODO: Save game feature!
+    // if (this.gameStarted) {
+    //   window.localStorage.setItem('gameState', JSON.stringify({
+    //     dataGrid: this.dataGrid
+    //   }))
+    // }
   }
 
   prepareTileLayout() {
@@ -113,6 +153,8 @@ export default class Board extends React.Component {
     document.addEventListener('keydown', ({ keyCode }) => {
       this.keyListener({ keyCode, board: this })
     })
+
+    this.retrieveData()
   }
 
   componentWillUnmount() {

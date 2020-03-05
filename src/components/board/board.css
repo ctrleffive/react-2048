@@ -35,6 +35,19 @@
   position: absolute;
   color: #fcf9f0;
   font-size: 2rem;
+  box-shadow: transparent 0 0 0 0 inset;
+  animation: appear 0.1s ease-in;
+}
+
+@keyframes appear {
+  0% {
+    opacity: 0;
+    box-shadow: #bcafa2 0 0 0 5px inset;
+  }
+  100% {
+    opacity: 1;
+    box-shadow: transparent 0 0 0 0 inset;
+  }
 }
 
 .tile-item:before {
