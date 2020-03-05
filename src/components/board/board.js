@@ -22,11 +22,32 @@ export default class Board extends React.Component {
     this.prepareTileLayout()
   }
 
+  flattenItems({ onlyEmpty } = { onlyEmpty: false }) {
+    const items = []
+    for (const row of this.dataGrid) {
+      for (const tileItem of row) {
+        if (onlyEmpty) {
+          if (tileItem.number === 0) {
+            items.push(tileItem)
+          }
+        } else {
+          if (tileItem.number !== 0) {
+            items.push(tileItem)
+          }
+        }
+      }
+    }
+    return items
+  }
+
   prepareGrid() {
-    for (let xIndex = 0; xIndex < this.gridSize; xIndex++) {
+    for (let x = 0; x < this.gridSize; x++) {
       const row = []
-      for (let yIndex = 0; yIndex < this.gridSize; yIndex++) {
-        row.push(null)
+      for (let y = 0; y < this.gridSize; y++) {
+        row.push({
+          position: { x, y },
+          number: 0
+        })
       }
       this.dataGrid.push(row)
     }
@@ -38,18 +59,14 @@ export default class Board extends React.Component {
     }
     for (let index = 0; index < count; index++) {
       const freeCells = []
-      this.dataGrid.forEach((xItem, x) => {
-        xItem.forEach((yItem, y) => {
-          if (yItem === null) {
-            freeCells.push({
-              position: { x, y },
-              number: Math.round(Math.random()) === 0 ? 2 : 4
-            })
-          }
+      for (const item of this.flattenItems({ onlyEmpty: true })) {
+        freeCells.push({
+          position: item.position,
+          number: Math.round(Math.random()) === 0 ? 2 : 4
         })
-      })
+      }
       if (freeCells.length === 0) {
-        alert('full!')
+        global.location.reload()
       } else {
         const randomIndex = Math.floor(Math.random() * (freeCells.length - 1))
         const randomCell = freeCells[randomIndex]
@@ -74,28 +91,98 @@ export default class Board extends React.Component {
     let savedData = window.localStorage.getItem('gameState')
     if (savedData) {
       savedData = JSON.parse(savedData)
-      const dataTiles = []
       this.dataGrid = savedData.dataGrid
-      this.dataGrid.forEach(xItem => {
-        xItem.forEach(yItem => {
-          if (yItem !== null) {
-            dataTiles.push(
-              <div
-                key={`${yItem.position.x}${yItem.position.y}`}
-                className="tile-item"
-                data-position={`${yItem.position.x}-${yItem.position.y}`}
-                data-value={yItem.number}
-              ></div>
-            )
-          }
-        })
-      })
+      const dataTiles = []
+      for (const tileItem of this.flattenItems()) {
+        dataTiles.push(
+          <div
+            key={`${tileItem.position.x}${tileItem.position.y}`}
+            className="tile-item"
+            data-position={`${tileItem.position.x}-${tileItem.position.y}`}
+            data-value={tileItem.number}
+          ></div>
+        )
+      }
       this.setState({ dataTiles })
     } else {
       setTimeout(() => {
         this.putNewNumber(2)
+        console.log('GRID', this.dataGrid)
       }, 500)
     }
+  }
+
+  moveTiles(direction) {
+    for (const tileItem of this.flattenItems()) {
+      let nextVacantSpace
+      switch (direction) {
+        case 37:
+          nextVacantSpace = this.findNearestVacant({
+            stableAxisName: 'y',
+            searchAxisName: 'x',
+            position: tileItem.position,
+            isLowerMargin: true
+          })
+          break
+        case 38:
+          nextVacantSpace = this.findNearestVacant({
+            stableAxisName: 'x',
+            searchAxisName: 'y',
+            position: tileItem.position,
+            isLowerMargin: true
+          })
+          break
+        case 39:
+          nextVacantSpace = this.findNearestVacant({
+            stableAxisName: 'y',
+            searchAxisName: 'x',
+            position: tileItem.position,
+            isHigherMargin: true
+          })
+          break
+        case 40:
+          nextVacantSpace = this.findNearestVacant({
+            stableAxisName: 'x',
+            searchAxisName: 'y',
+            position: tileItem.position,
+            isHigherMargin: true
+          })
+          break
+      }
+      if (nextVacantSpace) {
+        console.log(tileItem.position, 'NEAREST_VACANT', nextVacantSpace.position)
+        // document
+        //   .querySelector(`[data-position="${tileItem.position.x}-${tileItem.position.y}"]`)
+        //   .setAttribute(
+        //     'data-position',
+        //     `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
+        //   )
+        // this.dataGrid[tileItem.position.x]
+        // [tileItem.position.y].position = nextVacantSpace.position
+      }
+    }
+    this.putNewNumber()
+  }
+
+  findNearestVacant({ stableAxisName, searchAxisName, position, isLowerMargin, isHigherMargin }) {
+    const item = this.flattenItems({
+      onlyEmpty: true
+    }).filter(tileItem => {
+      const isSameAxis = tileItem.position[stableAxisName] === position[stableAxisName]
+      const isLowerMargined =
+        tileItem.position[searchAxisName] >= 0 &&
+        tileItem.position[searchAxisName] < position[searchAxisName]
+      const isHigherMargined =
+        tileItem.position[searchAxisName] > position[searchAxisName] &&
+        tileItem.position[searchAxisName] <= this.gridSize - 1
+
+      return (
+        isSameAxis &&
+        (isLowerMargin ? isLowerMargined : true) &&
+        (isHigherMargin ? isHigherMargined : true)
+      )
+    })
+    return item.length ? item[0] : null
   }
 
   saveGame() {
@@ -123,29 +210,12 @@ export default class Board extends React.Component {
   }
 
   keyListener({ board, keyCode }) {
-    switch (keyCode) {
-      // left arrow
-      case 37:
-        board.putNewNumber()
-        break
-
-      // top arrow
-      case 38:
-        console.log('top!')
-        break
-
-      // right arrow
-      case 39:
-        console.log('right!')
-        break
-
-      // down arrow
-      case 40:
-        console.log('down!')
-        break
-
-      default:
-        break
+    // 37 = left
+    // 38 = top
+    // 39 = right
+    // 40 = down
+    if ([37, 38, 39, 40].includes(keyCode)) {
+      board.moveTiles(keyCode)
     }
   }
 
