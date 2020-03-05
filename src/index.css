@@ -107,11 +107,15 @@ body {
   font-weight: bold;
   font-size: 0.8rem;
   letter-spacing: 0.1px;
+  cursor: pointer;
+}
+
+.control[disabled] {
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .button-icon {
   height: 4rem;
   margin-bottom: 1rem;
-}
-.button-label {
 }
