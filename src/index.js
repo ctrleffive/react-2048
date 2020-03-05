@@ -2,11 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import * as serviceWorker from './serviceWorker'
 
+import './index.css'
+
 import ScoreSheet from './components/score_sheet/score_sheet'
 import Controls from './components/controls/controls'
-import Board from './components/board/borad'
-
-import './index.css'
+import Board from './components/board/board'
 
 const Game = () => {
   return (

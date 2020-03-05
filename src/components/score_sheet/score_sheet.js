@@ -1,5 +1,7 @@
 import React from 'react'
 
+import './score_sheet.css'
+
 const ScoreSheet = () => {
   return (
     <div className="head">

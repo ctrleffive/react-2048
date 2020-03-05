@@ -1,5 +1,7 @@
 import React from 'react'
 
+import './controls.css'
+
 import UndoImg from '../../assets/undo.png'
 import RedoImg from '../../assets/redo.png'
 import ResetImg from '../../assets/reset.png'

@@ -1,0 +1,18 @@
+.game-board {
+  background-color: #bcafa2;
+  border-radius: 2px;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  gap: 10px;
+  padding: 10px;
+}
+
+.grid-item {
+  background-color: #cdc1b5;
+  height: 75px;
+  width: 85px;
+  border-radius: 2px;
+}

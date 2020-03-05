@@ -1,5 +1,7 @@
 import React from 'react'
 
+import './board.css'
+
 const gridItems = () => {
   const items = []
   for (let index = 0; index < 4 * 4; index++) {
