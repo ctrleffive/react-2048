@@ -1,6 +1,6 @@
 import React from 'react'
 
-function ScoreSheet() {
+const ScoreSheet = () => {
   return (
     <div className="head">
       <div className="head-title">2048</div>

@@ -8,7 +8,7 @@ const gridItems = () => {
   return items
 }
 
-function Board() {
+const Board = () => {
   return (
     <div className="game-board">
       <div className="board-grid">{gridItems()}</div>

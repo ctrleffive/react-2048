@@ -1,11 +1,11 @@
 import React from 'react'
 
-import UndoImg from '../assets/undo.png'
-import RedoImg from '../assets/redo.png'
-import ResetImg from '../assets/reset.png'
-import ReplayImg from '../assets/replay.png'
+import UndoImg from '../../assets/undo.png'
+import RedoImg from '../../assets/redo.png'
+import ResetImg from '../../assets/reset.png'
+import ReplayImg from '../../assets/replay.png'
 
-function Controls() {
+const Controls = () => {
   return (
     <div className="controls">
       <button disabled className="control">
