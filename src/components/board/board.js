@@ -158,7 +158,9 @@ export default class Board extends React.Component {
 
       if (newPosition) {
         this.gameStarted = true
-        this.props.controllerStatusUpdates({ reset: true })
+        this.undoMove = { dataTiles: this.dataTiles }
+
+        this.props.controllerStatusUpdates({ reset: true, replay: true })
 
         this.updateDomTile({
           from: tileItem.position,
@@ -278,11 +280,9 @@ export default class Board extends React.Component {
         })
       )
 
-      this.undoMoves.push({ dataTiles })
-
       this.props.controllerStatusUpdates({
-        undo: this.undoMoves.length > 0,
-        redo: this.redoMoves.length > 0
+        undo: this.undoMove !== null,
+        redo: this.redoMove !== null
       })
     }
   }
@@ -301,8 +301,8 @@ export default class Board extends React.Component {
     this.isGameOver = false
 
     // Time Machine
-    this.undoMoves = []
-    this.redoMoves = []
+    this.undoMove = null
+    this.redoMove = null
 
     this.state = {
       dataTiles: [],
@@ -319,29 +319,27 @@ export default class Board extends React.Component {
     }
   }
 
-  undoMove() {
-    if (this.undoMoves.length > 0) {
-      const lastState = this.undoMoves[this.undoMoves.length - 1]
-      this.setTilesFromData(lastState.dataTiles)
-      this.redoMoves.push(lastState)
-      this.undoMoves.pop()
+  performUndo() {
+    if (this.undoMove !== null) {
+      this.setTilesFromData(this.undoMove.dataTiles)
+      this.redoMove = { dataTiles: this.dataTiles }
+      this.undoMove = null
     }
     this.props.controllerStatusUpdates({
-      undo: this.undoMoves.length > 0,
-      redo: this.redoMoves.length > 0
+      undo: this.undoMove !== null,
+      redo: this.redoMove !== null
     })
   }
 
-  redoMove() {
-    if (this.redoMoves.length > 0) {
-      const lastState = this.redoMoves[this.redoMoves.length - 1]
-      this.setTilesFromData(lastState.dataTiles)
-      this.undoMoves.push(lastState)
-      this.redoMoves.pop()
+  performRedo() {
+    if (this.redoMove !== null) {
+      this.setTilesFromData(this.redoMove.dataTiles)
+      this.undoMove = this.redoMove
+      this.redoMove = null
     }
     this.props.controllerStatusUpdates({
-      undo: this.undoMoves.length > 0,
-      redo: this.redoMoves.length > 0
+      undo: this.undoMove !== null,
+      redo: this.redoMove !== null
     })
   }
 

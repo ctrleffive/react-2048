@@ -38,11 +38,11 @@ class Game extends React.Component {
         break
 
       case 'undo':
-        this.boardRef.current.undoMove()
+        this.boardRef.current.performUndo()
         break
 
       case 'redo':
-        this.boardRef.current.redoMove()
+        this.boardRef.current.performRedo()
         break
 
       case 'replay':
