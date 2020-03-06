@@ -8,13 +8,13 @@
   color: #fcf9f0;
   font-size: 2rem;
   box-shadow: transparent 0 0 0 0 inset;
-  animation: appear 0.1s ease-in;
+  animation: 0.2s ease-in appear;
 }
 
 @keyframes appear {
   0% {
     opacity: 0;
-    box-shadow: #bcafa2 0 0 0 5px inset;
+    box-shadow: #bcafa2 0 0 0 10px inset;
   }
   100% {
     opacity: 1;

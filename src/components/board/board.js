@@ -94,18 +94,6 @@ export default class Board extends React.Component {
     let stableAxisName = 'y'
     let searchAxisName = 'x'
 
-    const dataTiles = this.dataTiles
-      .filter(item => item.number !== 0)
-      .sort((firstItem, secondItem) => {
-        if (isLowerMargin) {
-          return firstItem.position[searchAxisName] - secondItem.position[searchAxisName]
-        } else if (isHigherMargin) {
-          return secondItem.position[searchAxisName] - firstItem.position[searchAxisName]
-        } else {
-          return false
-        }
-      })
-
     switch (direction) {
       case 37:
         isLowerMargin = true
@@ -126,6 +114,19 @@ export default class Board extends React.Component {
       default:
         break
     }
+
+    const dataTiles = this.dataTiles
+      .filter(item => item.number !== 0)
+      .sort((firstItem, secondItem) => {
+        if (isLowerMargin) {
+          return firstItem.position[searchAxisName] - secondItem.position[searchAxisName]
+        } else if (isHigherMargin) {
+          return secondItem.position[searchAxisName] - firstItem.position[searchAxisName]
+        } else {
+          return false
+        }
+      })
+
     do {
       const tileItem = dataTiles[0]
       const nextVacantSpace = this.findNearestVacant({
