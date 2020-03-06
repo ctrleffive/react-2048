@@ -12,18 +12,8 @@ export default class Board extends React.Component {
 
     this.gameStarted = false
     this.gridSize = 4
-    this.dataTiles = []
-    this.tileStyles = ``
-    this.layoutItems = []
-    this.timeMachine = []
 
-    this.state = {
-      dataTiles: [],
-      isGameOver: false
-    }
-
-    this.prepareGrid()
-    this.prepareTileLayout()
+    this.setGame()
   }
 
   prepareGrid(withReturn = false) {
@@ -62,6 +52,7 @@ export default class Board extends React.Component {
         dataTiles.push(<Tile data={randomCell} key={Date.now()} />)
 
         this.setState({ dataTiles })
+
         this.saveGame()
       }
 
@@ -146,13 +137,14 @@ export default class Board extends React.Component {
       })
       if (nextVacantSpace) {
         this.gameStarted = true
+        this.props.controllerStatusUpdates({ reset: true })
+
         document
           .querySelector(`[data-position="${tileItem.position.x}-${tileItem.position.y}"]`)
           .setAttribute(
             'data-position',
             `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
           )
-
         this.makeTilesFromDom()
       }
       dataTiles.shift()
@@ -225,15 +217,75 @@ export default class Board extends React.Component {
           dataTiles
         })
       )
-      this.timeMachine.push({
-        dataTiles
+
+      this.undoMoves.push({ dataTiles })
+
+      this.props.controllerStatusUpdates({
+        undo: this.undoMoves.length > 0,
+        redo: this.redoMoves.length > 0
       })
-      console.log(this.timeMachine)
     }
   }
 
   resetStorage() {
     window.localStorage.removeItem('gameState')
+  }
+
+  setGame(totalNewGame = false) {
+    this.props.controllerStatusUpdates({ undo: false, replay: false, reset: true, redo: false })
+
+    this.gameStarted = false
+    this.dataTiles = []
+    this.tileStyles = ``
+    this.layoutItems = []
+
+    // Time Machine
+    this.undoMoves = []
+    this.redoMoves = []
+
+    this.state = {
+      dataTiles: [],
+      isGameOver: false
+    }
+
+    this.prepareGrid()
+    this.prepareTileLayout()
+
+    if (totalNewGame) {
+      this.resetStorage()
+      this.setState(this.state)
+      this.retrieveData()
+    }
+  }
+
+  undoMove() {
+    if (this.undoMoves.length > 0) {
+      const lastState = this.undoMoves[this.undoMoves.length - 1]
+      this.setTilesFromData(lastState.dataTiles)
+      this.redoMoves.push(lastState)
+      this.undoMoves.pop()
+    }
+    this.props.controllerStatusUpdates({
+      undo: this.undoMoves.length > 0,
+      redo: this.redoMoves.length > 0
+    })
+  }
+
+  redoMove() {
+    if (this.redoMoves.length > 0) {
+      const lastState = this.redoMoves[this.redoMoves.length - 1]
+      this.setTilesFromData(lastState.dataTiles)
+      this.undoMoves.push(lastState)
+      this.redoMoves.pop()
+    }
+    this.props.controllerStatusUpdates({
+      undo: this.undoMoves.length > 0,
+      redo: this.redoMoves.length > 0
+    })
+  }
+
+  replayMoves() {
+    alert('replay')
   }
 
   prepareTileLayout() {
