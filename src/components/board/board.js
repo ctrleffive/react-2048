@@ -57,8 +57,12 @@ export default class Board extends React.Component {
       }
 
       if (this.dataTiles.filter(item => item.number === 0).length === 0) {
-        this.setState({ isGameOver: true })
+        this.isGameOver = true
         this.resetStorage()
+        this.props.controllerStatusUpdates({ reset: true, undo: false, redo: false, replay: false })
+        setTimeout(() => {
+          this.setState({ isGameOver: true })
+        }, 1000)
       }
     }
   }
@@ -129,28 +133,83 @@ export default class Board extends React.Component {
 
     do {
       const tileItem = dataTiles[0]
-      const nextVacantSpace = this.findNearestVacant({
-        position: tileItem.position,
+      const { position } = tileItem
+
+      const newPosition = this.findNearestVacant({
+        position,
         stableAxisName,
         searchAxisName,
         isLowerMargin,
         isHigherMargin
       })
-      if (nextVacantSpace) {
+
+      // const mergePosition = this.findMergableSets({
+      //   number,
+      //   position,
+      //   stableAxisName,
+      //   searchAxisName,
+      //   isLowerMargin,
+      //   isHigherMargin
+      // })
+
+      // if (mergePosition) {
+      //   newPosition = mergePosition
+      // }
+
+      if (newPosition) {
         this.gameStarted = true
         this.props.controllerStatusUpdates({ reset: true })
 
-        document
-          .querySelector(`[data-position="${tileItem.position.x}-${tileItem.position.y}"]`)
-          .setAttribute(
-            'data-position',
-            `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
-          )
-        this.makeTilesFromDom()
+        this.updateDomTile({
+          from: tileItem.position,
+          to: newPosition.position,
+          number: newPosition.number || tileItem.number
+        })
       }
       dataTiles.shift()
     } while (dataTiles.length > 0)
     this.putNewNumber()
+  }
+
+  // FIXME: Messedup code!!!! 🤫
+  findMergableSets({
+    number,
+    position,
+    stableAxisName,
+    searchAxisName,
+    isLowerMargin,
+    isHigherMargin
+  }) {
+    const items = this.dataTiles
+      .filter(tileItem => {
+        return (
+          tileItem.number === number &&
+          tileItem.position !== position &&
+          tileItem.position[stableAxisName] === position[stableAxisName] &&
+          true
+        )
+      })
+      .map(tileItem => {
+        tileItem.number = number * 2
+        return tileItem
+      })
+
+    console.log('MERG_FINDS', items)
+    return null
+    // return items.length === 1 ? items[0] : null
+  }
+
+  updateDomTile({ from, to, number, remove }) {
+    const element = document.querySelector(`[data-position="${from.x}-${from.y}"]`)
+    if (remove) {
+      element.remove()
+    } else {
+      element.setAttribute('data-position', `${to.x}-${to.y}`)
+      if (number) {
+        element.setAttribute('data-value', number)
+      }
+    }
+    this.makeTilesFromDom()
   }
 
   makeTilesFromDom() {
@@ -239,6 +298,7 @@ export default class Board extends React.Component {
     this.dataTiles = []
     this.tileStyles = ``
     this.layoutItems = []
+    this.isGameOver = false
 
     // Time Machine
     this.undoMoves = []
@@ -307,7 +367,7 @@ export default class Board extends React.Component {
     // 38 = top
     // 39 = right
     // 40 = down
-    if ([37, 38, 39, 40].includes(keyCode)) {
+    if (!this.isGameOver && [37, 38, 39, 40].includes(keyCode)) {
       board.moveTiles(keyCode)
     }
   }
