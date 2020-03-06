@@ -16,6 +16,7 @@
   font-size: 0.8rem;
   letter-spacing: 0.1px;
   cursor: pointer;
+  transition-duration: 0.2s;
 }
 
 .control[disabled] {
