@@ -3,7 +3,7 @@ import React from 'react'
 import './tile.css'
 
 const Tile = props => {
-  const { position, number } = this.props.data
+  const { position, number } = props.data
   return (
     <div
       className="tile-item"

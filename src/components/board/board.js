@@ -15,9 +15,11 @@ export default class Board extends React.Component {
     this.dataTiles = []
     this.tileStyles = ``
     this.layoutItems = []
+    this.timeMachine = []
 
     this.state = {
-      dataTiles: []
+      dataTiles: [],
+      isGameOver: false
     }
 
     this.prepareGrid()
@@ -57,16 +59,14 @@ export default class Board extends React.Component {
         this.dataTiles[randomCellIndex] = randomCell
 
         const dataTiles = this.state.dataTiles
-        dataTiles.push(
-          <Tile data={randomCell} key={randomCell.position.x + '' + randomCell.position.y} />
-        )
+        dataTiles.push(<Tile data={randomCell} key={Date.now()} />)
 
         this.setState({ dataTiles })
         this.saveGame()
       }
 
       if (this.dataTiles.filter(item => item.number === 0).length === 0) {
-        console.log('FULLL!!!')
+        this.setState({ isGameOver: true })
         this.resetStorage()
       }
     }
@@ -76,18 +76,25 @@ export default class Board extends React.Component {
     let savedData = window.localStorage.getItem('gameState')
     if (savedData) {
       savedData = JSON.parse(savedData)
-      this.dataTiles = savedData.dataTiles
-      const dataTiles = this.dataTiles
-        .filter(item => item.number !== 0)
-        .map(tileItem => (
-          <Tile data={tileItem} key={tileItem.position.x + '' + tileItem.position.y} />
-        ))
-      this.setState({ dataTiles })
+      this.setTilesFromData(savedData.dataTiles)
     } else {
       setTimeout(() => {
         this.putNewNumber(2)
       }, 500)
     }
+  }
+
+  setTilesFromData(data) {
+    this.dataTiles = data
+    const dataTiles = this.dataTiles
+      .filter(item => item.number !== 0)
+      .map(tileItem => (
+        <Tile
+          data={tileItem}
+          key={Date.now() + '' + tileItem.position.x + '' + tileItem.position.y}
+        />
+      ))
+    this.setState({ dataTiles })
   }
 
   moveTiles(direction) {
@@ -146,31 +153,35 @@ export default class Board extends React.Component {
             `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
           )
 
-        const allTiles = document.querySelectorAll('.tile-item')
-        this.dataTiles = this.prepareGrid(true).map(dataItem => {
-          let data = dataItem
-          for (let index = 0; index < allTiles.length; index++) {
-            const item = allTiles[index]
-            const positions = item
-              .getAttribute('data-position')
-              .split('-')
-              .map(num => parseInt(num))
-            if (dataItem.position.x === positions[0] && dataItem.position.y === positions[1]) {
-              data = {
-                position: {
-                  x: positions[0],
-                  y: positions[1]
-                },
-                number: parseInt(item.getAttribute('data-value'))
-              }
-            }
-          }
-          return data
-        })
+        this.makeTilesFromDom()
       }
       dataTiles.shift()
     } while (dataTiles.length > 0)
-    // this.putNewNumber()
+    this.putNewNumber()
+  }
+
+  makeTilesFromDom() {
+    const allTiles = document.querySelectorAll('.tile-item')
+    this.dataTiles = this.prepareGrid(true).map(dataItem => {
+      let data = dataItem
+      for (let index = 0; index < allTiles.length; index++) {
+        const item = allTiles[index]
+        const positions = item
+          .getAttribute('data-position')
+          .split('-')
+          .map(num => parseInt(num))
+        if (dataItem.position.x === positions[0] && dataItem.position.y === positions[1]) {
+          data = {
+            position: {
+              x: positions[0],
+              y: positions[1]
+            },
+            number: parseInt(item.getAttribute('data-value'))
+          }
+        }
+      }
+      return data
+    })
   }
 
   findNearestVacant({ stableAxisName, searchAxisName, position, isLowerMargin, isHigherMargin }) {
@@ -196,8 +207,9 @@ export default class Board extends React.Component {
         }
       })
     if (
-      (isLowerMargin && item[0].position[searchAxisName] > position[searchAxisName]) ||
-      (isHigherMargin && item[0].position[searchAxisName] < position[searchAxisName])
+      item[0] &&
+      ((isLowerMargin && item[0].position[searchAxisName] > position[searchAxisName]) ||
+        (isHigherMargin && item[0].position[searchAxisName] < position[searchAxisName]))
     ) {
       return null
     }
@@ -206,12 +218,17 @@ export default class Board extends React.Component {
 
   saveGame() {
     if (this.gameStarted) {
+      const dataTiles = this.dataTiles
       window.localStorage.setItem(
         'gameState',
         JSON.stringify({
-          dataTiles: this.dataTiles
+          dataTiles
         })
       )
+      this.timeMachine.push({
+        dataTiles
+      })
+      console.log(this.timeMachine)
     }
   }
 
@@ -268,6 +285,7 @@ export default class Board extends React.Component {
         >
           {this.state.dataTiles}
         </div>
+        {this.state.isGameOver ? <div className="game-over"></div> : ''}
       </div>
     )
   }

@@ -25,3 +25,46 @@
   top: 10px;
   bottom: 10px;
 }
+
+.game-over {
+  font-weight: bold;
+  font-size: 4rem;
+  color: #776e65;
+  animation: fadeIn 1s ease-in;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.game-over:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: -1;
+  background-color: rgba(252, 249, 240, 0.84);
+}
+
+.game-over:after {
+  content: 'Game Over!';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
