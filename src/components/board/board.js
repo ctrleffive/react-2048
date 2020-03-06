@@ -4,13 +4,15 @@ import { css, jsx } from '@emotion/core'
 
 import './board.css'
 
+import Tile from '../tile/tile'
+
 export default class Board extends React.Component {
   constructor(props) {
     super(props)
 
     this.gameStarted = false
     this.gridSize = 4
-    this.dataGrid = []
+    this.dataTiles = []
     this.tileStyles = ``
     this.layoutItems = []
 
@@ -22,65 +24,50 @@ export default class Board extends React.Component {
     this.prepareTileLayout()
   }
 
-  flattenItems({ onlyEmpty } = { onlyEmpty: false }) {
-    const items = []
-    for (const row of this.dataGrid) {
-      for (const tileItem of row) {
-        if (onlyEmpty) {
-          if (tileItem.number === 0) {
-            items.push(tileItem)
-          }
-        } else {
-          if (tileItem.number !== 0) {
-            items.push(tileItem)
-          }
+  prepareGrid(withReturn = false) {
+    const results = []
+    for (let x = 0; x < this.gridSize; x++) {
+      for (let y = 0; y < this.gridSize; y++) {
+        const item = {
+          position: { x, y },
+          number: 0
+        }
+        results.push(item)
+        if (!withReturn) {
+          this.dataTiles.push(item)
         }
       }
     }
-    return items
-  }
-
-  prepareGrid() {
-    for (let x = 0; x < this.gridSize; x++) {
-      const row = []
-      for (let y = 0; y < this.gridSize; y++) {
-        row.push({
-          position: { x, y },
-          number: 0
-        })
-      }
-      this.dataGrid.push(row)
-    }
+    return results
   }
 
   putNewNumber(count = 1) {
     for (let index = 0; index < count; index++) {
-      const freeCells = []
-      for (const item of this.flattenItems({ onlyEmpty: true })) {
-        freeCells.push({
-          position: item.position,
-          number: Math.round(Math.random()) === 0 ? 2 : 4
-        })
-      }
+      const freeCells = this.dataTiles.filter(item => item.number === 0)
+
       if (freeCells.length > 0) {
         const randomIndex = Math.floor(Math.random() * (freeCells.length - 1))
         const randomCell = freeCells[randomIndex]
+        randomCell.number = Math.round(Math.random()) === 0 ? 2 : 4
 
-        this.dataGrid[randomCell.position.x][randomCell.position.y] = randomCell
+        const randomCellIndex = this.dataTiles.findIndex(item => {
+          return item.position === randomCell.position
+        })
+
+        this.dataTiles[randomCellIndex] = randomCell
+
         const dataTiles = this.state.dataTiles
         dataTiles.push(
-          <div
-            key={`${randomCell.position.x}${randomCell.position.y}`}
-            className="tile-item"
-            data-position={`${randomCell.position.x}-${randomCell.position.y}`}
-            data-value={randomCell.number}
-          ></div>
+          <Tile data={randomCell} key={randomCell.position.x + '' + randomCell.position.y} />
         )
+
         this.setState({ dataTiles })
         this.saveGame()
       }
-      if (this.flattenItems({ onlyEmpty: true }).length === 0) {
+
+      if (this.dataTiles.filter(item => item.number === 0).length === 0) {
         console.log('FULLL!!!')
+        this.resetStorage()
       }
     }
   }
@@ -89,18 +76,12 @@ export default class Board extends React.Component {
     let savedData = window.localStorage.getItem('gameState')
     if (savedData) {
       savedData = JSON.parse(savedData)
-      this.dataGrid = savedData.dataGrid
-      const dataTiles = []
-      for (const tileItem of this.flattenItems()) {
-        dataTiles.push(
-          <div
-            key={`${tileItem.position.x}${tileItem.position.y}`}
-            className="tile-item"
-            data-position={`${tileItem.position.x}-${tileItem.position.y}`}
-            data-value={tileItem.number}
-          ></div>
-        )
-      }
+      this.dataTiles = savedData.dataTiles
+      const dataTiles = this.dataTiles
+        .filter(item => item.number !== 0)
+        .map(tileItem => (
+          <Tile data={tileItem} key={tileItem.position.x + '' + tileItem.position.y} />
+        ))
       this.setState({ dataTiles })
     } else {
       setTimeout(() => {
@@ -110,82 +91,116 @@ export default class Board extends React.Component {
   }
 
   moveTiles(direction) {
-    console.log('GRID', this.flattenItems())
-    for (const tileItem of this.flattenItems()) {
-      let nextVacantSpace
-      switch (direction) {
-        case 37:
-          nextVacantSpace = this.findNearestVacant({
-            stableAxisName: 'y',
-            searchAxisName: 'x',
-            position: tileItem.position,
-            isLowerMargin: true
-          })
-          break
-        case 38:
-          nextVacantSpace = this.findNearestVacant({
-            stableAxisName: 'x',
-            searchAxisName: 'y',
-            position: tileItem.position,
-            isLowerMargin: true
-          })
-          break
-        case 39:
-          nextVacantSpace = this.findNearestVacant({
-            stableAxisName: 'y',
-            searchAxisName: 'x',
-            position: tileItem.position,
-            isHigherMargin: true
-          })
-          break
-        case 40:
-          nextVacantSpace = this.findNearestVacant({
-            stableAxisName: 'x',
-            searchAxisName: 'y',
-            position: tileItem.position,
-            isHigherMargin: true
-          })
-          break
-      }
+    let isLowerMargin = false
+    let isHigherMargin = false
+    let stableAxisName = 'y'
+    let searchAxisName = 'x'
+
+    const dataTiles = this.dataTiles
+      .filter(item => item.number !== 0)
+      .sort((firstItem, secondItem) => {
+        if (isLowerMargin) {
+          return firstItem.position[searchAxisName] - secondItem.position[searchAxisName]
+        } else if (isHigherMargin) {
+          return secondItem.position[searchAxisName] - firstItem.position[searchAxisName]
+        } else {
+          return false
+        }
+      })
+
+    switch (direction) {
+      case 37:
+        isLowerMargin = true
+        break
+      case 38:
+        stableAxisName = 'x'
+        searchAxisName = 'y'
+        isLowerMargin = true
+        break
+      case 39:
+        isHigherMargin = true
+        break
+      case 40:
+        stableAxisName = 'x'
+        searchAxisName = 'y'
+        isHigherMargin = true
+        break
+      default:
+        break
+    }
+    do {
+      const tileItem = dataTiles[0]
+      const nextVacantSpace = this.findNearestVacant({
+        position: tileItem.position,
+        stableAxisName,
+        searchAxisName,
+        isLowerMargin,
+        isHigherMargin
+      })
       if (nextVacantSpace) {
         this.gameStarted = true
-        console.log(tileItem.position, 'NEAREST_VACANT', nextVacantSpace.position)
-        // document
-        //   .querySelector(`[data-position="${tileItem.position.x}-${tileItem.position.y}"]`)
-        //   .setAttribute(
-        //     'data-position',
-        //     `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
-        //   )
-        // this.dataGrid[tileItem.position.x]
-        // [tileItem.position.y].position = nextVacantSpace.position
-        // this.saveGame()
+        document
+          .querySelector(`[data-position="${tileItem.position.x}-${tileItem.position.y}"]`)
+          .setAttribute(
+            'data-position',
+            `${nextVacantSpace.position.x}-${nextVacantSpace.position.y}`
+          )
+
+        const allTiles = document.querySelectorAll('.tile-item')
+        this.dataTiles = this.prepareGrid(true).map(dataItem => {
+          let data = dataItem
+          for (let index = 0; index < allTiles.length; index++) {
+            const item = allTiles[index]
+            const positions = item
+              .getAttribute('data-position')
+              .split('-')
+              .map(num => parseInt(num))
+            if (dataItem.position.x === positions[0] && dataItem.position.y === positions[1]) {
+              data = {
+                position: {
+                  x: positions[0],
+                  y: positions[1]
+                },
+                number: parseInt(item.getAttribute('data-value'))
+              }
+            }
+          }
+          return data
+        })
       }
-    }
+      dataTiles.shift()
+    } while (dataTiles.length > 0)
     // this.putNewNumber()
   }
 
   findNearestVacant({ stableAxisName, searchAxisName, position, isLowerMargin, isHigherMargin }) {
-    console.log(
-      this.flattenItems({
-        onlyEmpty: true
-      }).filter(tileItem => {
-        return tileItem.position[stableAxisName] === position[stableAxisName]
-      })
-    )
-    const item = this.flattenItems({
-      onlyEmpty: true
-    })
+    if (
+      (isLowerMargin && position[searchAxisName] === 0) ||
+      (isHigherMargin && position[searchAxisName] === this.gridSize - 1)
+    ) {
+      return null
+    }
+    const item = this.dataTiles
       .filter(tileItem => {
-        return tileItem.position[stableAxisName] === position[stableAxisName]
-      })
-      .filter(tileItem => {
-        const isLowerMargined = tileItem.position[searchAxisName] < position[searchAxisName]
-        const isHigherMargined = tileItem.position[searchAxisName] > position[searchAxisName]
-
         return (
-          (isLowerMargin ? isLowerMargined : true) && (isHigherMargin ? isHigherMargined : true)
+          tileItem.number === 0 && tileItem.position[stableAxisName] === position[stableAxisName]
         )
       })
+      .sort((firstItem, secondItem) => {
+        if (isLowerMargin) {
+          return firstItem.position[searchAxisName] - secondItem.position[searchAxisName]
+        } else if (isHigherMargin) {
+          return secondItem.position[searchAxisName] - firstItem.position[searchAxisName]
+        } else {
+          return null
+        }
+      })
+    if (
+      (isLowerMargin && item[0].position[searchAxisName] > position[searchAxisName]) ||
+      (isHigherMargin && item[0].position[searchAxisName] < position[searchAxisName])
+    ) {
+      return null
+    }
     return item.length ? item[0] : null
   }
 
@@ -194,24 +209,26 @@ export default class Board extends React.Component {
       window.localStorage.setItem(
         'gameState',
         JSON.stringify({
-          dataGrid: this.dataGrid
+          dataTiles: this.dataTiles
         })
       )
     }
   }
 
+  resetStorage() {
+    window.localStorage.removeItem('gameState')
+  }
+
   prepareTileLayout() {
-    this.dataGrid.forEach((xItem, xIndex) => {
-      xItem.forEach((_yItem, yIndex) => {
-        const xPosition = xIndex * (85 + 10)
-        const yPosition = yIndex * (80 + 10)
-        this.tileStyles += `
-          .tile-item[data-position="${xIndex}-${yIndex}"] {
+    this.layoutItems = this.dataTiles.map(item => {
+      const xPosition = item.position.x * (85 + 10)
+      const yPosition = item.position.y * (80 + 10)
+      this.tileStyles += `
+          .tile-item[data-position="${item.position.x}-${item.position.y}"] {
             transform: translate(${xPosition}px, ${yPosition}px);
           }
         `
-        this.layoutItems.push(<div key={`${xIndex}${yIndex}`} className="grid-item"></div>)
-      })
+      return <div key={`${item.position.x}${item.position.y}`} className="grid-item"></div>
     })
   }
 
