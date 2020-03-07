@@ -24,6 +24,11 @@ class Game extends React.Component {
     }
   }
 
+  /**
+   * Handle controller button's status updates events from board. (boardRef is there)
+   * @param {Object} controllerStates Object contains visibility
+   * states of undo, replay, reset, redo
+   */
   controllerStatusUpdates(controllerStates) {
     controllerStates = { ...this.state.controllerStates, ...controllerStates }
     this.setState({
@@ -31,6 +36,10 @@ class Game extends React.Component {
     })
   }
 
+  /**
+   * Recieve events from controler component and call needed methods inside board component
+   * @param {string} type Event type
+   */
   controlBoard(type) {
     switch (type) {
       case 'reset':

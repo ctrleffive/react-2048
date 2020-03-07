@@ -6,16 +6,26 @@ import './board.css'
 
 import Tile from '../tile/tile'
 
+/**
+ * Board Component.
+ * Handles all sort of tile movements and complex logic.
+ */
 export default class Board extends React.Component {
   constructor(props) {
     super(props)
 
-    this.gameStarted = false
+    // Grid size is customizable
     this.gridSize = 4
 
+    // INFO: Refer to `setGame()` method for other properties.
     this.setGame()
   }
 
+  /**
+   * Prepare background grid board based on the grid size.
+   * @param {bool} withReturn If this param is `true`,
+   * grid will be returned, not pushed to `dataTiles`
+   */
   prepareGrid(withReturn = false) {
     const results = []
     this.gridSizeStyles += `grid-template-columns: `
@@ -36,6 +46,11 @@ export default class Board extends React.Component {
     return results
   }
 
+  /**
+   * Search for free cells, if found put a new number (either 2 or 4).
+   * If no free cells found, GAME OVER!
+   * @param {number} count How many numbers need to put. When a new game starts, need to put 2.
+   */
   putNewNumber(count = 1) {
     for (let index = 0; index < count; index++) {
       const freeCells = this.dataTiles.filter(item => item.number === 0)
@@ -60,16 +75,30 @@ export default class Board extends React.Component {
       }
 
       if (this.dataTiles.filter(item => item.number === 0).length === 0) {
-        this.isGameOver = true
-        this.resetStorage()
-        this.props.controllerStatusUpdates({ reset: true, undo: false, redo: false, replay: false })
-        setTimeout(() => {
-          this.setState({ isGameOver: true })
-        }, 1000)
+        this.gameOverProcedures()
       }
     }
   }
 
+  /**
+   * Game Over!
+   * `localStorage` will be cleared.
+   * Controllers will be notified.
+   * Update state with game over notification.
+   */
+  gameOverProcedures() {
+    this.isGameOver = true
+    this.resetStorage()
+    this.props.controllerStatusUpdates({ reset: true, undo: false, redo: false, replay: false })
+    setTimeout(() => {
+      this.setState({ isGameOver: true })
+    }, 1000)
+  }
+
+  /**
+   * Retrieve data from `localStorage`. If exists, arrange tiles according to data.
+   * If no data, put 2 new numbers.
+   */
   retrieveData() {
     let savedData = window.localStorage.getItem('gameState')
     if (savedData) {
@@ -82,6 +111,10 @@ export default class Board extends React.Component {
     }
   }
 
+  /**
+   * Update DOM based on given tile data.
+   * @param {object} data
+   */
   setTilesFromData(data) {
     this.dataTiles = data
     const dataTiles = this.dataTiles
@@ -95,8 +128,19 @@ export default class Board extends React.Component {
     this.setState({ dataTiles })
   }
 
+  /**
+   * Move tiles to free space based on the direction.
+   * @param {number} direction `KeyCode` of direction arrows.
+   * 37 = left, 38 = top, 39 = right, 40 = down
+   */
   moveTiles(direction) {
+    /**
+     * Is the direction point towards a lower index position
+     */
     let isLowerMargin = false
+    /**
+     * Is the direction point towards a higher index position
+     */
     let isHigherMargin = false
     let stableAxisName = 'y'
     let searchAxisName = 'x'
@@ -146,19 +190,6 @@ export default class Board extends React.Component {
         isHigherMargin
       })
 
-      // const mergePosition = this.findMergableSets({
-      //   number,
-      //   position,
-      //   stableAxisName,
-      //   searchAxisName,
-      //   isLowerMargin,
-      //   isHigherMargin
-      // })
-
-      // if (mergePosition) {
-      //   newPosition = mergePosition
-      // }
-
       if (newPosition) {
         this.gameStarted = true
         this.undoMove = { dataTiles: this.dataTiles }
@@ -176,7 +207,10 @@ export default class Board extends React.Component {
     this.putNewNumber()
   }
 
-  // FIXME: Messedup code!!!! 🤫
+  /**
+   * Find and return mergable tiles.
+   * FIXME: MESSEDUP CODE!!!! 🤫
+   */
   findMergableSets({
     number,
     position,
@@ -204,6 +238,12 @@ export default class Board extends React.Component {
     // return items.length === 1 ? items[0] : null
   }
 
+  /**
+   * Find DOM element and update with new positions and values.
+   * @param {object} data Object that contains `from` = original
+   * position, `to` = new position, `number` = number to be updated,
+   * `remove` = is the element need to be removed instead of updating the position.
+   */
   updateDomTile({ from, to, number, remove }) {
     const element = document.querySelector(`[data-position="${from.x}-${from.y}"]`)
     if (remove) {
@@ -217,6 +257,8 @@ export default class Board extends React.Component {
     this.makeTilesFromDom()
   }
 
+  /** Populate `dataTiles` array based on the DOM elements.
+   * Reverse of `setTilesFromData()` method */
   makeTilesFromDom() {
     const allTiles = document.querySelectorAll('.tile-item')
     this.dataTiles = this.prepareGrid(true).map(dataItem => {
@@ -294,6 +336,11 @@ export default class Board extends React.Component {
     window.localStorage.removeItem('gameState')
   }
 
+  /**
+   * Initialize game variables and prepare for a fresh game.
+   * @param {bool} totalNewGame If this param is `true`, a total
+   * localStorage erase will also happen.
+   */
   setGame(totalNewGame = false) {
     this.props.controllerStatusUpdates({ undo: false, replay: false, reset: true, redo: false })
 
