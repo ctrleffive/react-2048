@@ -18,7 +18,9 @@ export default class Board extends React.Component {
 
   prepareGrid(withReturn = false) {
     const results = []
+    this.gridSizeStyles += `grid-template-columns: `
     for (let x = 0; x < this.gridSize; x++) {
+      this.gridSizeStyles += `auto `
       for (let y = 0; y < this.gridSize; y++) {
         const item = {
           position: { x, y },
@@ -30,6 +32,7 @@ export default class Board extends React.Component {
         }
       }
     }
+    this.gridSizeStyles += `;`
     return results
   }
 
@@ -297,6 +300,7 @@ export default class Board extends React.Component {
     this.gameStarted = false
     this.dataTiles = []
     this.tileStyles = ``
+    this.gridSizeStyles = ``
     this.layoutItems = []
     this.isGameOver = false
 
@@ -387,7 +391,14 @@ export default class Board extends React.Component {
   render() {
     return (
       <div className="game-board">
-        <div className="board-grid">{this.layoutItems}</div>
+        <div
+          css={css`
+            ${this.gridSizeStyles}
+          `}
+          className="board-grid"
+        >
+          {this.layoutItems}
+        </div>
         <div
           className="tile-grid"
           css={css`
