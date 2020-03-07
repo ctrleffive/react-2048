@@ -453,8 +453,8 @@ export default class Board extends React.Component {
 
   performUndo() {
     if (this.undoMove !== null) {
-      this.setTilesFromData(this.undoMove.dataTiles)
       this.redoMove = { dataTiles: this.dataTiles }
+      this.setTilesFromData(this.undoMove.dataTiles)
       this.undoMove = null
     }
     this.props.controllerStatusUpdates({
@@ -466,7 +466,6 @@ export default class Board extends React.Component {
   performRedo() {
     if (this.redoMove !== null) {
       this.setTilesFromData(this.redoMove.dataTiles)
-      this.undoMove = this.redoMove
       this.redoMove = null
     }
     this.props.controllerStatusUpdates({
