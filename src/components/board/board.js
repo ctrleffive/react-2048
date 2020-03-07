@@ -16,6 +16,10 @@ export default class Board extends React.Component {
 
     // Grid size is customizable
     this.gridSize = 4
+    this.scores = {
+      score: 0,
+      bestScore: 0
+    }
 
     // INFO: Refer to `setGame()` method for other properties.
     this.setGame()
@@ -66,6 +70,9 @@ export default class Board extends React.Component {
 
         this.dataTiles[randomCellIndex] = randomCell
 
+        // Updating score based on generated number. Just for now.
+        if (count !== 2) this.scoreUpdate(randomCell.number)
+
         const dataTiles = this.state.dataTiles
         dataTiles.push(<Tile data={randomCell} key={Date.now()} />)
 
@@ -78,6 +85,19 @@ export default class Board extends React.Component {
         this.gameOverProcedures()
       }
     }
+  }
+
+  /**
+   * Update score & bestScore
+   * @param {number} score
+   */
+  scoreUpdate(score) {
+    this.scores.score += score
+    if (this.scores.bestScore < this.scores.score) {
+      this.scores.bestScore += score
+    }
+    // emit score update event
+    this.props.scoreUpdates(this.scores)
   }
 
   /**
@@ -100,9 +120,13 @@ export default class Board extends React.Component {
    * If no data, put 2 new numbers.
    */
   retrieveData() {
-    let savedData = window.localStorage.getItem('gameState')
-    if (savedData) {
-      savedData = JSON.parse(savedData)
+    const savedData = JSON.parse(window.localStorage.getItem('gameState') || '{}')
+
+    if (savedData.scores) {
+      this.scores = savedData.scores
+      this.scoreUpdate(0)
+    }
+    if (savedData.dataTiles) {
       this.setTilesFromData(savedData.dataTiles)
     } else {
       setTimeout(() => {
@@ -336,10 +360,13 @@ export default class Board extends React.Component {
   saveGame() {
     if (this.gameStarted) {
       const dataTiles = this.dataTiles
+      const scores = this.scores
+
       window.localStorage.setItem(
         'gameState',
         JSON.stringify({
-          dataTiles
+          dataTiles,
+          scores
         })
       )
 
@@ -351,7 +378,21 @@ export default class Board extends React.Component {
   }
 
   resetStorage() {
-    window.localStorage.removeItem('gameState')
+    const savedData = JSON.parse(window.localStorage.getItem('gameState') || '{}')
+    if (this.scores.score === 0) {
+      if (this.scores.bestScore === 0) {
+        window.localStorage.removeItem('gameState')
+      } else {
+        if (window.confirm('This will reset best score also!')) {
+          window.localStorage.removeItem('gameState')
+          this.props.scoreUpdates({ score: 0, bestScore: 0 })
+        }
+      }
+    } else {
+      savedData.scores.score = 0
+      delete savedData.dataTiles
+      window.localStorage.setItem('gameState', JSON.stringify(savedData))
+    }
   }
 
   /**

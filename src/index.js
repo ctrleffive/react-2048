@@ -13,6 +13,7 @@ class Game extends React.Component {
     super(props)
 
     this.boardRef = React.createRef()
+    this.scoreRef = React.createRef()
 
     this.state = {
       controllerStates: {
@@ -63,16 +64,25 @@ class Game extends React.Component {
     }
   }
 
+  /**
+   * Score updates from board component
+   * @param {object} score Object with `score` & `bestScore`
+   */
+  scoreUpdates(score) {
+    this.scoreRef.current.scoreUpdate(score)
+  }
+
   render() {
     return (
       <div className="main-wrap">
         <div className="main-board">
-          <ScoreSheet />
+          <ScoreSheet ref={this.scoreRef} />
           <div className="message">
             Join the numbers and get to the <b>2048 tile!</b>
           </div>
           <Board
             ref={this.boardRef}
+            scoreUpdates={this.scoreUpdates.bind(this)}
             controllerStatusUpdates={this.controllerStatusUpdates.bind(this)}
           />
         </div>
