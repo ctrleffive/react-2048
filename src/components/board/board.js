@@ -54,27 +54,35 @@ export default class Board extends React.Component {
    * Search for free cells, if found put a new number (either 2 or 4).
    * If no free cells found, GAME OVER!
    * @param {number} count How many numbers need to put. When a new game starts, need to put 2.
+   * @param {object} exactTile Predefined tile data from auto play feature.
+   * @returns {number} Number or last put tile
    */
-  putNewNumber(count = 1) {
+  putNewNumber(count = 1, exactTile = null) {
+    let lastTile
     for (let index = 0; index < count; index++) {
       const freeCells = this.dataTiles.filter(item => item.number === 0)
 
       if (freeCells.length > 0) {
         const randomIndex = Math.floor(Math.random() * (freeCells.length - 1))
-        const randomCell = freeCells[randomIndex]
-        randomCell.number = Math.round(Math.random()) === 0 ? 2 : 4
+        const newTile = exactTile || freeCells[randomIndex]
 
-        const randomCellIndex = this.dataTiles.findIndex(item => {
-          return item.position === randomCell.position
+        if (!exactTile) {
+          newTile.number = Math.round(Math.random()) === 0 ? 2 : 4
+        }
+
+        lastTile = newTile
+
+        const newTileIndex = this.dataTiles.findIndex(item => {
+          return item.position === newTile.position
         })
 
-        this.dataTiles[randomCellIndex] = randomCell
+        this.dataTiles[newTileIndex] = newTile
 
         // Updating score based on generated number. Just for now.
-        if (count !== 2) this.scoreUpdate(randomCell.number)
+        if (count !== 2) this.scoreUpdate(newTile.number)
 
         const dataTiles = this.state.dataTiles
-        dataTiles.push(<Tile data={randomCell} key={Date.now()} />)
+        dataTiles.push(<Tile data={newTile} key={Date.now()} />)
 
         this.setState({ dataTiles })
 
@@ -85,6 +93,8 @@ export default class Board extends React.Component {
         this.gameOverProcedures()
       }
     }
+    if (count === 2) this.autoTiles = this.dataTiles
+    return lastTile || null
   }
 
   /**
@@ -127,6 +137,11 @@ export default class Board extends React.Component {
       this.scoreUpdate(0)
     }
     if (savedData.dataTiles) {
+      this.moves = savedData.moves || []
+      this.autoTiles = savedData.autoTiles || []
+
+      this.props.controllerStatusUpdates({ replay: this.moves.length, reset: true })
+
       this.setTilesFromData(savedData.dataTiles)
     } else {
       setTimeout(() => {
@@ -156,8 +171,10 @@ export default class Board extends React.Component {
    * Move tiles to free space based on the direction.
    * @param {number} direction `KeyCode` of direction arrows.
    * 37 = left, 38 = top, 39 = right, 40 = down
+   * @param {object} exactTile Predefined tile data from auto play feature.
+   * @returns {number} Number or last put tile
    */
-  moveTiles(direction) {
+  moveTiles(direction, exactTile = null) {
     /**
      * Is the direction point towards a lower index position
      */
@@ -218,7 +235,7 @@ export default class Board extends React.Component {
         this.gameStarted = true
         this.undoMove = { dataTiles: this.dataTiles }
 
-        this.props.controllerStatusUpdates({ reset: true, replay: true })
+        if (this.isMovable) this.props.controllerStatusUpdates({ reset: true, replay: true })
 
         this.updateDomTile({
           from: tileItem.position,
@@ -228,7 +245,7 @@ export default class Board extends React.Component {
       }
       dataTiles.shift()
     } while (dataTiles.length > 0)
-    this.putNewNumber()
+    return this.putNewNumber(1, exactTile)
   }
 
   /**
@@ -358,15 +375,14 @@ export default class Board extends React.Component {
    * Save game state to `localStorage`
    */
   saveGame() {
-    if (this.gameStarted) {
-      const dataTiles = this.dataTiles
-      const scores = this.scores
-
+    if (this.gameStarted && this.isMovable) {
       window.localStorage.setItem(
         'gameState',
         JSON.stringify({
-          dataTiles,
-          scores
+          dataTiles: this.dataTiles,
+          autoTiles: this.autoTiles,
+          scores: this.scores,
+          moves: this.moves
         })
       )
 
@@ -404,13 +420,17 @@ export default class Board extends React.Component {
     this.props.controllerStatusUpdates({ undo: false, replay: false, reset: true, redo: false })
 
     this.gameStarted = false
+    this.isGameOver = false
+    this.isMovable = true
+
     this.dataTiles = []
     this.tileStyles = ``
     this.gridSizeStyles = ``
     this.layoutItems = []
-    this.isGameOver = false
 
     // Time Machine
+    this.autoTiles = []
+    this.moves = []
     this.undoMove = null
     this.redoMove = null
 
@@ -453,8 +473,27 @@ export default class Board extends React.Component {
     })
   }
 
-  replayMoves() {
-    alert('replay')
+  async replayMoves() {
+    this.isMovable = false
+    this.props.controllerStatusUpdates({ undo: false, replay: false, reset: false, redo: false })
+
+    this.setTilesFromData(this.autoTiles)
+
+    // Move tiles automatically till `moves` are empty
+    for (const move of this.moves) {
+      await new Promise((resolve, reject) => {
+        // never going to happen, just to hide linter error
+        if (!move) reject()
+
+        setTimeout(() => {
+          this.moveTiles(move.keyCode, move.newTile)
+          resolve()
+        }, 2000)
+      })
+    }
+
+    this.props.controllerStatusUpdates({ reset: true })
+    this.isMovable = true
   }
 
   /**
@@ -480,8 +519,9 @@ export default class Board extends React.Component {
    * @param {number} keyCode 37 = left key, 38 = up key, 39 = right key, 40 = down key
    */
   keyListener({ board, keyCode }) {
-    if (!this.isGameOver && [37, 38, 39, 40].includes(keyCode)) {
-      board.moveTiles(keyCode)
+    if (this.isMovable && !this.isGameOver && [37, 38, 39, 40].includes(keyCode)) {
+      const newTile = board.moveTiles(keyCode)
+      this.moves.push({ keyCode, newTile })
     }
   }
 
