@@ -22,7 +22,7 @@ export default class Board extends React.Component {
   }
 
   /**
-   * Prepare background grid board based on the grid size.
+   * Prepare grid items based on the grid size.
    * @param {bool} withReturn If this param is `true`,
    * grid will be returned, not pushed to `dataTiles`
    */
@@ -182,7 +182,7 @@ export default class Board extends React.Component {
       const tileItem = dataTiles[0]
       const { position } = tileItem
 
-      const newPosition = this.findNearestVacant({
+      const newPosition = this.findNearestFreeCell({
         position,
         stableAxisName,
         searchAxisName,
@@ -258,7 +258,8 @@ export default class Board extends React.Component {
   }
 
   /** Populate `dataTiles` array based on the DOM elements.
-   * Reverse of `setTilesFromData()` method */
+   * Reverse of `setTilesFromData()` method
+   */
   makeTilesFromDom() {
     const allTiles = document.querySelectorAll('.tile-item')
     this.dataTiles = this.prepareGrid(true).map(dataItem => {
@@ -283,7 +284,18 @@ export default class Board extends React.Component {
     })
   }
 
-  findNearestVacant({ stableAxisName, searchAxisName, position, isLowerMargin, isHigherMargin }) {
+  /**
+   * Search for nearest free cell according to current position and direction
+   * @param {object} data Current tile position details.
+   * `position` = current position of the tile
+   * `stableAxisName` = axis that is with same value
+   * `searchAxisName` = axis that the future tile need to be found
+   * `isLowerMargin` = is the direction point towards a lower index position
+   * `isHigherMargin` = is the direction point towards a higher index position
+   */
+  findNearestFreeCell({ stableAxisName, searchAxisName, position, isLowerMargin, isHigherMargin }) {
+    // Checking if current postion is at edges.
+    // If yes, don't move!
     if (
       (isLowerMargin && position[searchAxisName] === 0) ||
       (isHigherMargin && position[searchAxisName] === this.gridSize - 1)
@@ -292,6 +304,7 @@ export default class Board extends React.Component {
     }
     const item = this.dataTiles
       .filter(tileItem => {
+        // Checking if cell is free & on same axis as original
         return (
           tileItem.number === 0 && tileItem.position[stableAxisName] === position[stableAxisName]
         )
@@ -305,6 +318,8 @@ export default class Board extends React.Component {
           return null
         }
       })
+    // Checking if found postion is inner or outer index than the margin.
+    // If yes, don't move!
     if (
       item[0] &&
       ((isLowerMargin && item[0].position[searchAxisName] > position[searchAxisName]) ||
@@ -315,6 +330,9 @@ export default class Board extends React.Component {
     return item.length ? item[0] : null
   }
 
+  /**
+   * Save game state to `localStorage`
+   */
   saveGame() {
     if (this.gameStarted) {
       const dataTiles = this.dataTiles
@@ -398,6 +416,9 @@ export default class Board extends React.Component {
     alert('replay')
   }
 
+  /**
+   * Design grid board layout with position styles based on tiles data.
+   */
   prepareTileLayout() {
     this.layoutItems = this.dataTiles.map(item => {
       const xPosition = item.position.x * (85 + 10)
@@ -411,11 +432,13 @@ export default class Board extends React.Component {
     })
   }
 
+  /**
+   * Eventlistener attachment method for key presses.
+   * @param {Board} board Board object. Passed from event listener
+   * because `this` is not available here.
+   * @param {number} keyCode 37 = left key, 38 = up key, 39 = right key, 40 = down key
+   */
   keyListener({ board, keyCode }) {
-    // 37 = left
-    // 38 = top
-    // 39 = right
-    // 40 = down
     if (!this.isGameOver && [37, 38, 39, 40].includes(keyCode)) {
       board.moveTiles(keyCode)
     }

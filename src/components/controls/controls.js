@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import './controls.css'
 
@@ -7,6 +8,10 @@ import RedoImg from '../../assets/redo.png'
 import ResetImg from '../../assets/reset.png'
 import ReplayImg from '../../assets/replay.png'
 
+/**
+ * Game controls
+ * @param {object} props
+ */
 const Controls = props => {
   return (
     <div className="controls">
@@ -44,6 +49,11 @@ const Controls = props => {
       </button>
     </div>
   )
+}
+
+Controls.propTypes = {
+  buttonStates: PropTypes.object,
+  buttonClick: PropTypes.func
 }
 
 export default Controls
