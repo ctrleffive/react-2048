@@ -102,12 +102,14 @@ export default class Board extends React.Component {
    * @param {number} score
    */
   scoreUpdate(score) {
-    this.scores.score += score
-    if (this.scores.bestScore < this.scores.score) {
-      this.scores.bestScore += score
+    if (this.isMovable) {
+      this.scores.score += score
+      if (this.scores.bestScore < this.scores.score) {
+        this.scores.bestScore += score
+      }
+      // emit score update event
+      this.props.scoreUpdates(this.scores)
     }
-    // emit score update event
-    this.props.scoreUpdates(this.scores)
   }
 
   /**
