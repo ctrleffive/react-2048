@@ -89,7 +89,9 @@ export default class Board extends React.Component {
         this.saveGame()
       }
 
-      if (this.dataTiles.filter(item => item.number === 0).length === 0) {
+      const mergableChances = this.findMergableSets()
+      const freeCellsAgain = this.dataTiles.filter(item => item.number === 0)
+      if (freeCellsAgain.length === 0 && mergableChances.length === 0) {
         this.gameOverProcedures()
       }
     }
@@ -246,6 +248,7 @@ export default class Board extends React.Component {
       }
       dataTiles.shift()
     } while (dataTiles.length > 0)
+
     const mergables = this.findMergableSets(direction)
     for (const mergable of mergables) {
       this.updateDomTile({
@@ -253,6 +256,7 @@ export default class Board extends React.Component {
         to: mergable.to.position,
         number: mergable.number
       })
+
       this.updateDomTile({
         remove: true,
         from: mergable.to.position,
@@ -265,43 +269,65 @@ export default class Board extends React.Component {
   /**
    * Find and return mergable tiles.
    * @param {number} direction `KeyCode` of direction arrows.
-   * 37 = left, 38 = top, 39 = right, 40 = down
+   * 37 = left, 38 = top, 39 = right, 40 = down. If not provided,
+   * search for all directions and return list
    */
   findMergableSets(direction) {
-    const mergables = []
-    for (let xIndex = 0; xIndex < this.gridSize; xIndex++) {
-      let itemsRow = []
-      for (let yIndex = 0; yIndex < this.gridSize; yIndex++) {
-        const item = this.dataTiles.filter(item => {
-          if (direction === 37 || direction === 39) {
-            return item.position.x === yIndex && item.position.y === xIndex
-          } else {
-            return item.position.x === xIndex && item.position.y === yIndex
-          }
-        })[0]
-        itemsRow.push(item)
-      }
-      itemsRow = itemsRow.filter(item => item.number !== 0)
-      if (direction === 39 || direction === 40) {
-        itemsRow = itemsRow.reverse()
-      }
+    if (direction) {
+      let mergables = []
+      for (let xIndex = 0; xIndex < this.gridSize; xIndex++) {
+        let itemsRow = []
+        for (let yIndex = 0; yIndex < this.gridSize; yIndex++) {
+          const item = this.dataTiles.filter(item => {
+            if (direction === 37 || direction === 39) {
+              return item.position.x === yIndex && item.position.y === xIndex
+            } else {
+              return item.position.x === xIndex && item.position.y === yIndex
+            }
+          })[0]
+          itemsRow.push(item)
+        }
+        itemsRow = itemsRow.filter(item => item.number !== 0)
+        if (direction === 39 || direction === 40) {
+          itemsRow = itemsRow.reverse()
+        }
 
-      if (itemsRow.length) {
-        for (let index = 0; index < itemsRow.length - 1; index++) {
-          const item = itemsRow[index]
-          const nextItem = itemsRow[index + 1]
-          if (item.number === nextItem.number) {
-            mergables.push({
-              number: item.number,
-              from: nextItem,
-              to: item
-            })
+        const rowMergables = []
+        if (itemsRow.length) {
+          for (let index = 0; index < itemsRow.length - 1; index++) {
+            const item = itemsRow[index]
+            if (
+              !rowMergables.length ||
+              rowMergables.filter(merItem => {
+                return (
+                  merItem.position !== item.position &&
+                  merItem.from.position !== item.position &&
+                  true
+                )
+              }).length
+            ) {
+              const nextItem = itemsRow[index + 1]
+              if (item.number === nextItem.number) {
+                rowMergables.push({
+                  number: item.number,
+                  from: nextItem,
+                  to: item
+                })
+              }
+            }
           }
         }
+        mergables = [...mergables, ...rowMergables]
       }
-    }
 
-    return mergables
+      return mergables
+    } else {
+      let mergableChances = []
+      for (const keyCode of [37, 38, 39, 40]) {
+        mergableChances = [...mergableChances, ...this.findMergableSets(keyCode)]
+      }
+      return mergableChances
+    }
   }
 
   /**
@@ -316,9 +342,10 @@ export default class Board extends React.Component {
     if (number) {
       condition += `[data-value="${number}"]`
     }
+    condition += `:not(.merged)`
     const element = document.querySelector(condition)
     if (remove) {
-      element.remove()
+      element.classList.add('merged')
     } else {
       element.setAttribute('data-position', `${to.x}-${to.y}`)
       if (number) {
@@ -332,7 +359,7 @@ export default class Board extends React.Component {
    * Reverse of `setTilesFromData()` method
    */
   makeTilesFromDom() {
-    const allTiles = document.querySelectorAll('.tile-item')
+    const allTiles = document.querySelectorAll('.tile-item:not(.merged)')
     this.dataTiles = this.prepareGrid(true).map(dataItem => {
       let data = dataItem
       for (let index = 0; index < allTiles.length; index++) {

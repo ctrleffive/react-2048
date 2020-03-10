@@ -11,6 +11,10 @@
   animation: 0.2s ease-in appear;
 }
 
+.tile-item.merged {
+  display: none;
+}
+
 @keyframes appear {
   0% {
     opacity: 0;
