@@ -78,9 +78,6 @@ export default class Board extends React.Component {
 
         this.dataTiles[newTileIndex] = newTile
 
-        // Updating score based on generated number. Just for now.
-        if (count !== 2) this.scoreUpdate(newTile.number)
-
         const dataTiles = this.state.dataTiles
         dataTiles.push(<Tile data={newTile} key={Date.now()} />)
 
@@ -249,8 +246,10 @@ export default class Board extends React.Component {
       dataTiles.shift()
     } while (dataTiles.length > 0)
 
+    let mergeScore = 0
     const mergables = this.findMergableSets(direction)
     for (const mergable of mergables) {
+      mergeScore += mergable.number * 2
       this.updateDomTile({
         from: mergable.from.position,
         to: mergable.to.position,
@@ -263,6 +262,7 @@ export default class Board extends React.Component {
         number: mergable.number
       })
     }
+    this.scoreUpdate(mergeScore)
     return this.putNewNumber(1, exactTile)
   }
 
@@ -458,7 +458,8 @@ export default class Board extends React.Component {
       } else {
         if (window.confirm('This will reset best score also!')) {
           window.localStorage.removeItem('gameState')
-          this.props.scoreUpdates({ score: 0, bestScore: 0 })
+          this.scores = { score: 0, bestScore: 0 }
+          this.props.scoreUpdates(this.scores)
         }
       }
     } else {
