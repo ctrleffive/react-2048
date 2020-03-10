@@ -241,60 +241,88 @@ export default class Board extends React.Component {
 
         this.updateDomTile({
           from: tileItem.position,
-          to: newPosition.position,
-          number: newPosition.number || tileItem.number
+          to: newPosition.position
         })
       }
       dataTiles.shift()
     } while (dataTiles.length > 0)
+    const mergables = this.findMergableSets(direction)
+    for (const mergable of mergables) {
+      this.updateDomTile({
+        from: mergable.from.position,
+        to: mergable.to.position,
+        number: mergable.number
+      })
+      this.updateDomTile({
+        remove: true,
+        from: mergable.to.position,
+        number: mergable.number
+      })
+    }
     return this.putNewNumber(1, exactTile)
   }
 
   /**
    * Find and return mergable tiles.
-   * FIXME: MESSEDUP CODE!!!! 🤫
+   * @param {number} direction `KeyCode` of direction arrows.
+   * 37 = left, 38 = top, 39 = right, 40 = down
    */
-  findMergableSets({
-    number,
-    position,
-    stableAxisName,
-    searchAxisName,
-    isLowerMargin,
-    isHigherMargin
-  }) {
-    const items = this.dataTiles
-      .filter(tileItem => {
-        return (
-          tileItem.number === number &&
-          tileItem.position !== position &&
-          tileItem.position[stableAxisName] === position[stableAxisName] &&
-          true
-        )
-      })
-      .map(tileItem => {
-        tileItem.number = number * 2
-        return tileItem
-      })
+  findMergableSets(direction) {
+    const mergables = []
+    for (let xIndex = 0; xIndex < this.gridSize; xIndex++) {
+      let itemsRow = []
+      for (let yIndex = 0; yIndex < this.gridSize; yIndex++) {
+        const item = this.dataTiles.filter(item => {
+          if (direction === 37 || direction === 39) {
+            return item.position.x === yIndex && item.position.y === xIndex
+          } else {
+            return item.position.x === xIndex && item.position.y === yIndex
+          }
+        })[0]
+        itemsRow.push(item)
+      }
+      itemsRow = itemsRow.filter(item => item.number !== 0)
+      if (direction === 39 || direction === 40) {
+        itemsRow = itemsRow.reverse()
+      }
 
-    console.log('MERG_FINDS', items)
-    return null
-    // return items.length === 1 ? items[0] : null
+      if (itemsRow.length) {
+        for (let index = 0; index < itemsRow.length - 1; index++) {
+          const item = itemsRow[index]
+          const nextItem = itemsRow[index + 1]
+          if (item.number === nextItem.number) {
+            mergables.push({
+              number: item.number,
+              from: nextItem,
+              to: item
+            })
+          }
+        }
+      }
+    }
+
+    return mergables
   }
 
   /**
    * Find DOM element and update with new positions and values.
    * @param {object} data Object that contains `from` = original
-   * position, `to` = new position, `number` = number to be updated,
-   * `remove` = is the element need to be removed instead of updating the position.
+   * position, `to` = new position, `number` = number where condition,
+   * when updating, use double value. `remove` = is the element need
+   * to be removed instead of updating the position.
    */
   updateDomTile({ from, to, number, remove }) {
-    const element = document.querySelector(`[data-position="${from.x}-${from.y}"]`)
+    let condition = `[data-position="${from.x}-${from.y}"]`
+    if (number) {
+      condition += `[data-value="${number}"]`
+    }
+    const element = document.querySelector(condition)
     if (remove) {
       element.remove()
     } else {
       element.setAttribute('data-position', `${to.x}-${to.y}`)
       if (number) {
-        element.setAttribute('data-value', number)
+        element.setAttribute('data-value', number * 2)
       }
     }
     this.makeTilesFromDom()
