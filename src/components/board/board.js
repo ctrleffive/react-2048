@@ -179,9 +179,10 @@ export default class Board extends React.Component {
    * @param {number} direction `KeyCode` of direction arrows.
    * 37 = left, 38 = top, 39 = right, 40 = down
    * @param {object} exactTile Predefined tile data from auto play feature.
+   * @param {bool} noMerge Just move only, dont update values.
    * @returns {number} Number or last put tile
    */
-  moveTiles(direction, exactTile = null) {
+  moveTiles(direction, exactTile = null, noMerge = false) {
     let anythingMoved = false
     /**
      * Is the direction point towards a lower index position
@@ -253,28 +254,34 @@ export default class Board extends React.Component {
       dataTiles.shift()
     } while (dataTiles.length > 0)
 
-    let mergeScore = 0
-    const mergables = this.findMergableSets(direction)
-    for (const mergable of mergables) {
-      mergeScore += mergable.number * 2
-      this.updateDomTile({
-        from: mergable.from.position,
-        to: mergable.to.position,
-        number: mergable.number
-      })
+    if (!noMerge) {
+      let mergeScore = 0
+      const mergables = this.findMergableSets(direction)
+      for (const mergable of mergables) {
+        mergeScore += mergable.number * 2
+        this.updateDomTile({
+          from: mergable.from.position,
+          to: mergable.to.position,
+          number: mergable.number
+        })
 
-      this.updateDomTile({
-        remove: true,
-        from: mergable.to.position,
-        number: mergable.number
-      })
-    }
-    this.scoreUpdate(mergeScore)
+        this.updateDomTile({
+          remove: true,
+          from: mergable.to.position,
+          number: mergable.number
+        })
+      }
+      this.scoreUpdate(mergeScore)
 
-    if (anythingMoved) {
-      return this.putNewNumber(1, exactTile)
-    } else {
-      return null
+      if (mergables.length) {
+        return this.moveTiles(direction, exactTile, true)
+      }
+
+      if (anythingMoved) {
+        return this.putNewNumber(1, exactTile)
+      } else {
+        return null
+      }
     }
   }
 
