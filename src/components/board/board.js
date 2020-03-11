@@ -99,12 +99,18 @@ export default class Board extends React.Component {
   /**
    * Update score & bestScore
    * @param {number} score
+   * @param {object} scores Scores object sometimes comes from undo & redo
+   * If then use it as it is.
    */
-  scoreUpdate(score) {
+  scoreUpdate(score, scores) {
     if (this.isMovable) {
-      this.scores.score += score
-      if (this.scores.bestScore < this.scores.score) {
-        this.scores.bestScore += score
+      if (scores) {
+        this.scores = scores
+      } else {
+        this.scores.score += score
+        if (this.scores.bestScore < this.scores.score) {
+          this.scores.bestScore += score
+        }
       }
       // emit score update event
       this.props.scoreUpdates(this.scores)
@@ -176,6 +182,7 @@ export default class Board extends React.Component {
    * @returns {number} Number or last put tile
    */
   moveTiles(direction, exactTile = null) {
+    let anythingMoved = false
     /**
      * Is the direction point towards a lower index position
      */
@@ -233,8 +240,8 @@ export default class Board extends React.Component {
       })
 
       if (newPosition) {
+        anythingMoved = true
         this.gameStarted = true
-        this.undoMove = { dataTiles: this.dataTiles }
 
         if (this.isMovable) this.props.controllerStatusUpdates({ reset: true, replay: true })
 
@@ -263,7 +270,12 @@ export default class Board extends React.Component {
       })
     }
     this.scoreUpdate(mergeScore)
-    return this.putNewNumber(1, exactTile)
+
+    if (anythingMoved) {
+      return this.putNewNumber(1, exactTile)
+    } else {
+      return null
+    }
   }
 
   /**
@@ -507,9 +519,20 @@ export default class Board extends React.Component {
     }
   }
 
+  setUndo() {
+    this.undoMove = {
+      dataTiles: JSON.parse(JSON.stringify(this.dataTiles)),
+      scores: JSON.parse(JSON.stringify(this.scores))
+    }
+  }
+
   performUndo() {
     if (this.undoMove !== null) {
-      this.redoMove = { dataTiles: this.dataTiles }
+      this.redoMove = {
+        dataTiles: JSON.parse(JSON.stringify(this.dataTiles)),
+        scores: JSON.parse(JSON.stringify(this.scores))
+      }
+      this.scoreUpdate(0, this.undoMove.scores)
       this.setTilesFromData(this.undoMove.dataTiles)
       this.undoMove = null
     }
@@ -521,6 +544,7 @@ export default class Board extends React.Component {
 
   performRedo() {
     if (this.redoMove !== null) {
+      this.scoreUpdate(0, this.redoMove.scores)
       this.setTilesFromData(this.redoMove.dataTiles)
       this.redoMove = null
     }
@@ -577,8 +601,9 @@ export default class Board extends React.Component {
    */
   keyListener({ board, keyCode }) {
     if (this.isMovable && !this.isGameOver && [37, 38, 39, 40].includes(keyCode)) {
+      this.setUndo()
       const newTile = board.moveTiles(keyCode)
-      this.moves.push({ keyCode, newTile })
+      if (newTile) this.moves.push({ keyCode, newTile })
     }
   }
 
