@@ -122,13 +122,14 @@ export default class Board extends React.Component {
    * `localStorage` will be cleared.
    * Controllers will be notified.
    * Update state with game over notification.
+   * @param {bool} isWinner If this is `true` show WIN message
    */
-  gameOverProcedures() {
+  gameOverProcedures(isWinner = false) {
     this.isGameOver = true
     this.resetStorage()
-    this.props.controllerStatusUpdates({ reset: true, undo: false, redo: false, replay: false })
     setTimeout(() => {
-      this.setState({ isGameOver: true })
+      this.props.controllerStatusUpdates({ reset: true, undo: false, redo: false, replay: false })
+      this.setState({ isGameOver: true, isWinner: isWinner })
     }, 1000)
   }
 
@@ -274,7 +275,7 @@ export default class Board extends React.Component {
       this.scoreUpdate(mergeScore)
 
       if (mergables.length) {
-        return this.moveTiles(direction, exactTile, true)
+        this.moveTiles(direction, exactTile, true)
       }
 
       if (anythingMoved) {
@@ -368,7 +369,9 @@ export default class Board extends React.Component {
     } else {
       element.setAttribute('data-position', `${to.x}-${to.y}`)
       if (number) {
-        element.setAttribute('data-value', number * 2)
+        const newNumber = number * 2
+        element.setAttribute('data-value', newNumber)
+        if (newNumber === 2048) this.gameOverProcedures()
       }
     }
     this.makeTilesFromDom()
@@ -513,7 +516,8 @@ export default class Board extends React.Component {
 
     this.state = {
       dataTiles: [],
-      isGameOver: false
+      isGameOver: false,
+      isWinner: false
     }
 
     this.prepareGrid()
@@ -611,6 +615,7 @@ export default class Board extends React.Component {
       this.setUndo()
       const newTile = board.moveTiles(keyCode)
       if (newTile) this.moves.push({ keyCode, newTile })
+      console.log(this.moves)
     }
   }
 
@@ -647,7 +652,11 @@ export default class Board extends React.Component {
         >
           {this.state.dataTiles}
         </div>
-        {this.state.isGameOver ? <div className="game-over"></div> : ''}
+        {this.state.isGameOver ? (
+          <div className="game-over" data-winner={this.state.isWinner}></div>
+        ) : (
+          ''
+        )}
       </div>
     )
   }
