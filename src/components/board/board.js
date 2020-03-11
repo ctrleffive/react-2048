@@ -615,7 +615,6 @@ export default class Board extends React.Component {
       this.setUndo()
       const newTile = board.moveTiles(keyCode)
       if (newTile) this.moves.push({ keyCode, newTile })
-      console.log(this.moves)
     }
   }
 
