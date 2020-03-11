@@ -8,6 +8,7 @@
 
 ## Requirements Checklist
 - [x] Solution should be a web app written in React.
+- [x] Basic rules & conventions of the 2048 game should be followed.
 - [x] Game should be playable using the arrow keys of the keyboard.
 - [x] Best score and current score should be tracked.
 - [x] The web-app should remember its previous state if the page is reloaded.
@@ -18,4 +19,3 @@
 - [x] The Replay should have a timeout of 2 seconds between each move
 - [x] When Replay is in progress, no new moves are allowed.
 - [x] Add a reset button to the UI, which will essentially restart the game from scratch.
-- [ ] Basic rules & conventions of the 2048 game should be followed. (tile merging pending)
