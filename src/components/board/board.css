@@ -59,7 +59,7 @@
   text-align: center;
 }
 
-.game-over[data-winner]:after {
+.game-over.winner:after {
   content: 'You Win!';
 }
 

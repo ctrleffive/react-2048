@@ -371,7 +371,7 @@ export default class Board extends React.Component {
       if (number) {
         const newNumber = number * 2
         element.setAttribute('data-value', newNumber)
-        if (newNumber === 2048) this.gameOverProcedures()
+        if (newNumber === 2048) this.gameOverProcedures(true)
       }
     }
     this.makeTilesFromDom()
@@ -652,7 +652,7 @@ export default class Board extends React.Component {
           {this.state.dataTiles}
         </div>
         {this.state.isGameOver ? (
-          <div className="game-over" data-winner={this.state.isWinner}></div>
+          <div className={'game-over ' + (this.state.isWinner ? 'winner' : '')}></div>
         ) : (
           ''
         )}
